@@ -47,7 +47,7 @@ export function BurnSummary({ selectedNFTs, onBurn }: BurnSummaryProps) {
       const response = await axios.post('/api/burn', {
         nfts: selectedNFTs.map(nft => ({
           mint: nft.mint,
-          tokenAccount: nft.tokenAccount.toBase58(),
+          tokenAccount: typeof nft.tokenAccount === 'string' ? nft.tokenAccount : nft.tokenAccount.toBase58(),
         })),
         payerPublicKey: publicKey.toString(),
       });
