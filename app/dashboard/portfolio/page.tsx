@@ -38,7 +38,7 @@ export default function PortfolioPage() {
     },
     enabled: addresses.length > 0,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache
+    gcTime: 0, // Don't cache (garbage collection time)
   });
   
   // Calculate summary with NFT data
