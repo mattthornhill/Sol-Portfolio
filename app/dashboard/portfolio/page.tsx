@@ -37,6 +37,15 @@ function PortfolioContent() {
   const [selectedWallet, setSelectedWallet] = useState<string>(initialWallet);
   const [autoRefresh, setAutoRefresh] = useState(true);
   
+  // Update selected wallet when query param changes
+  useEffect(() => {
+    console.log('Portfolio wallet query:', { walletFromQuery, validWallets: validWallets.length });
+    if (walletFromQuery && validWallets.find(w => w.address === walletFromQuery)) {
+      console.log('Setting wallet from query:', walletFromQuery);
+      setSelectedWallet(walletFromQuery);
+    }
+  }, [walletFromQuery, validWallets]);
+  
   // Filter addresses based on selection
   const addresses = selectedWallet === 'all' 
     ? validWallets.map(w => w.address)

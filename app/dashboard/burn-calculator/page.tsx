@@ -39,15 +39,33 @@ function BurnCalculatorContent() {
   const [priceFilter, setPriceFilter] = useState<'all' | 'worthless' | 'valuable'>('all');
   const [walletFilter, setWalletFilter] = useState<'all' | 'connected'>('all');
   
+  // Update selected wallet when validWallets change or query param is provided
+  useEffect(() => {
+    if (walletFromQuery && validWallets.find(w => w.address === walletFromQuery)) {
+      setSelectedWallet(walletFromQuery);
+    } else if (!selectedWallet && validWallets.length > 0) {
+      setSelectedWallet(validWallets[0].address);
+    }
+  }, [validWallets, walletFromQuery, selectedWallet]);
+  
   // Only show NFTs from selected wallet
   const addresses = selectedWallet ? [selectedWallet] : [];
+  
+  console.log('Burn Calculator Debug:', {
+    selectedWallet,
+    addresses,
+    validWallets: validWallets.length,
+    walletFromQuery
+  });
 
   const { data: nfts, isLoading, error, refetch } = useQuery({
     queryKey: ['nfts', addresses],
     queryFn: async () => {
+      console.log('Fetching NFTs for addresses:', addresses);
       const response = await axios.post('/api/nfts', { addresses }, {
         timeout: 300000 // 5 minutes timeout for large wallet counts
       });
+      console.log('NFT response:', response.data);
       return response.data.nfts as NFTAsset[];
     },
     enabled: addresses.length > 0,

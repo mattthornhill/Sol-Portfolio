@@ -61,7 +61,10 @@ export function WalletBreakdown({ portfolios, wallets }: WalletBreakdownProps) {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => window.open(`https://solscan.io/account/${portfolio.address}`, '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(`https://solscan.io/account/${portfolio.address}`, '_blank');
+                        }}
                       >
                         <ExternalLink className="h-3 w-3" />
                       </Button>
