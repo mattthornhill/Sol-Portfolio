@@ -21,6 +21,7 @@ export function BurnSummary({ selectedNFTs, onBurn }: BurnSummaryProps) {
   const { connection } = useConnection();
   const [isBurning, setIsBurning] = useState(false);
   
+  const MAX_BURN_BATCH = 10;
   const totalBurnValue = selectedNFTs.reduce((sum, nft) => sum + nft.burnValue, 0);
   const totalMarketValue = selectedNFTs.reduce((sum, nft) => sum + (nft.floorPrice || 0), 0);
   const valuableNFTs = selectedNFTs.filter(nft => nft.hasMarketValue && nft.floorPrice && nft.floorPrice > nft.burnValue);
@@ -40,6 +41,13 @@ export function BurnSummary({ selectedNFTs, onBurn }: BurnSummaryProps) {
 
   const handleBurn = async () => {
     if (!publicKey || !connected || selectedNFTs.length === 0) return;
+
+    // Solana transaction size limit - can only burn ~10-15 NFTs at once
+    const MAX_BURN_BATCH = 10;
+    if (selectedNFTs.length > MAX_BURN_BATCH) {
+      toast.error(`Can only burn ${MAX_BURN_BATCH} NFTs at once. You have ${selectedNFTs.length} selected.`);
+      return;
+    }
 
     setIsBurning(true);
     try {
@@ -113,12 +121,21 @@ export function BurnSummary({ selectedNFTs, onBurn }: BurnSummaryProps) {
       <CardContent className="space-y-4">
         {/* Selection Stats */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+          <div className={`flex items-center justify-between p-3 rounded-lg ${
+            selectedNFTs.length > MAX_BURN_BATCH ? 'bg-destructive/10 border border-destructive' : 'bg-muted/50'
+          }`}>
             <div className="flex items-center gap-2">
               <Hash className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Selected NFTs</span>
             </div>
-            <span className="font-semibold">{selectedNFTs.length}</span>
+            <div className="text-right">
+              <span className={`font-semibold ${selectedNFTs.length > MAX_BURN_BATCH ? 'text-destructive' : ''}`}>
+                {selectedNFTs.length}
+              </span>
+              <span className="text-xs text-muted-foreground block">
+                {selectedNFTs.length > MAX_BURN_BATCH ? `Max ${MAX_BURN_BATCH}` : `Max ${MAX_BURN_BATCH}`}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10">
