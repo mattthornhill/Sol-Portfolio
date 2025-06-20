@@ -51,22 +51,13 @@ function BurnCalculatorContent() {
   
   // Only show NFTs from selected wallet
   const addresses = selectedWallet ? [selectedWallet] : [];
-  
-  console.log('Burn Calculator Debug:', {
-    selectedWallet,
-    addresses,
-    validWallets: validWallets.length,
-    walletFromQuery
-  });
 
   const { data: nfts, isLoading, error, refetch } = useQuery({
     queryKey: ['nfts', addresses],
     queryFn: async () => {
-      console.log('Fetching NFTs for addresses:', addresses);
       const response = await axios.post('/api/nfts', { addresses }, {
         timeout: 300000 // 5 minutes timeout for large wallet counts
       });
-      console.log('NFT response:', response.data);
       return response.data.nfts as NFTAsset[];
     },
     enabled: addresses.length > 0,

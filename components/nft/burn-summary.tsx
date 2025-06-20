@@ -47,7 +47,7 @@ export function BurnSummary({ selectedNFTs, onBurn }: BurnSummaryProps) {
       const response = await axios.post('/api/burn', {
         nfts: selectedNFTs.map(nft => ({
           mint: nft.mint,
-          tokenAccount: nft.tokenAccount.toString(),
+          tokenAccount: nft.tokenAccount.toBase58(),
         })),
         payerPublicKey: publicKey.toString(),
       });
@@ -85,7 +85,11 @@ export function BurnSummary({ selectedNFTs, onBurn }: BurnSummaryProps) {
       
     } catch (error: any) {
       console.error('Burn error:', error);
-      if (error.message?.includes('User rejected')) {
+      
+      // Check if it's an axios error with response data
+      if (error.response?.data?.error) {
+        toast.error(`Failed to burn NFTs: ${error.response.data.error}`);
+      } else if (error.message?.includes('User rejected')) {
         toast.error('Transaction cancelled');
       } else {
         toast.error(`Failed to burn NFTs: ${error.message || 'Unknown error'}`);

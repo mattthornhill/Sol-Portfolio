@@ -40,9 +40,7 @@ function PortfolioContent() {
   
   // Update selected wallet when query param changes
   useEffect(() => {
-    console.log('Portfolio wallet query:', { walletFromQuery, validWallets: validWallets.length });
     if (walletFromQuery && validWallets.find(w => w.address === walletFromQuery)) {
-      console.log('Setting wallet from query:', walletFromQuery);
       setSelectedWallet(walletFromQuery);
     }
   }, [walletFromQuery, validWallets]);

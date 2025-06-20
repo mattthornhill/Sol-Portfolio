@@ -4,7 +4,14 @@ import { createBurnCheckedInstruction, createCloseAccountInstruction, TOKEN_PROG
 
 export async function POST(request: NextRequest) {
   try {
-    const { nfts, payerPublicKey } = await request.json();
+    const body = await request.json();
+    console.log('Burn API request:', { 
+      nfts: body.nfts?.length, 
+      payerPublicKey: body.payerPublicKey,
+      firstNft: body.nfts?.[0]
+    });
+    
+    const { nfts, payerPublicKey } = body;
     
     if (!nfts || !Array.isArray(nfts) || nfts.length === 0) {
       return NextResponse.json({ error: 'No NFTs selected for burning' }, { status: 400 });
@@ -29,6 +36,8 @@ export async function POST(request: NextRequest) {
     // Process each NFT
     for (const nft of nfts) {
       try {
+        console.log('Processing NFT:', { mint: nft.mint, tokenAccount: nft.tokenAccount });
+        
         const mint = new PublicKey(nft.mint);
         const tokenAccount = new PublicKey(nft.tokenAccount);
         
@@ -74,10 +83,11 @@ export async function POST(request: NextRequest) {
       estimatedRent: nfts.length * 0.002, // Approximate rent recovery per NFT
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Burn API error:', error);
+    console.error('Error stack:', error.stack);
     return NextResponse.json(
-      { error: 'Failed to create burn transaction' },
+      { error: error.message || 'Failed to create burn transaction' },
       { status: 500 }
     );
   }
