@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { useWalletStore } from '@/store/wallet-store';
 import { useMultiplePortfolios, usePortfolioSummary } from '@/hooks/usePortfolio';
-import { Loader2, TrendingUp, Wallet, Coins, Image, ArrowLeft, Filter, RefreshCw, Flame } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, Coins, Image, ArrowLeft, Filter, RefreshCw, Flame, Copy, Check } from 'lucide-react';
 import { PortfolioStats } from '@/components/portfolio/portfolio-stats';
 import { TokenList } from '@/components/portfolio/token-list';
 import { WalletBreakdown } from '@/components/portfolio/wallet-breakdown';
@@ -36,6 +36,7 @@ function PortfolioContent() {
     
   const [selectedWallet, setSelectedWallet] = useState<string>(initialWallet);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [copied, setCopied] = useState(false);
   
   // Update selected wallet when query param changes
   useEffect(() => {
@@ -148,6 +149,29 @@ function PortfolioContent() {
                 : `Analyzing ${validWallets.find(w => w.address === selectedWallet)?.nickname || selectedWallet.slice(0, 8) + '...'}`
               }
             </p>
+            {selectedWallet !== 'all' && (
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-muted-foreground font-mono">
+                  {selectedWallet}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedWallet);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                >
+                  {copied ? (
+                    <Check className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {selectedWallet !== 'all' && (

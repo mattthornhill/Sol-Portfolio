@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { useWalletStore } from '@/store/wallet-store';
 import { NFTAsset } from '@/types/portfolio';
-import { Loader2, Flame, DollarSign, AlertCircle, ArrowLeft, Wallet, Lock, CheckSquare, Filter } from 'lucide-react';
+import { Loader2, Flame, DollarSign, AlertCircle, ArrowLeft, Wallet, Lock, CheckSquare, Filter, Copy, Check } from 'lucide-react';
 import { NFTGrid } from '@/components/nft/nft-grid';
 import { BurnSummary } from '@/components/nft/burn-summary';
 import { useQuery } from '@tanstack/react-query';
@@ -38,6 +38,7 @@ function BurnCalculatorContent() {
   const [selectedNFTs, setSelectedNFTs] = useState<Set<string>>(new Set());
   const [priceFilter, setPriceFilter] = useState<'all' | 'worthless' | 'valuable'>('all');
   const [walletFilter, setWalletFilter] = useState<'all' | 'connected'>('all');
+  const [copied, setCopied] = useState(false);
   
   // Update selected wallet when validWallets change or query param is provided
   useEffect(() => {
@@ -181,6 +182,29 @@ function BurnCalculatorContent() {
                 : 'Select a wallet to analyze NFTs'
               }
             </p>
+            {selectedWallet && (
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-muted-foreground font-mono">
+                  {selectedWallet}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedWallet);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                >
+                  {copied ? (
+                    <Check className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
           <Button onClick={() => refetch()} variant="outline">
             Refresh
