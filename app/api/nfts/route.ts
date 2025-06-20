@@ -167,45 +167,46 @@ export async function POST(request: NextRequest) {
               }
               
               if (metadataUri.startsWith('http')) {
-                let metadataFetched = false;
-                let offchainMetadata: any = null;
-                
-                // Try primary gateway
                 try {
-                  const response = await axios.get(metadataUri, { 
-                    timeout: 5000,
-                    headers: {
-                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    }
-                  });
-                  offchainMetadata = response.data;
-                  metadataFetched = true;
-                } catch (error) {
-                  // If IPFS and primary gateway fails, try other gateways
-                  if (nft.uri.startsWith('ipfs://') && !metadataFetched) {
-                    const ipfsHash = nft.uri.replace('ipfs://', '');
-                    for (let i = 1; i < ipfsGateways.length && !metadataFetched; i++) {
-                      try {
-                        const alternativeUri = ipfsGateways[i] + ipfsHash;
-                        console.log(`Trying alternative IPFS gateway for ${nft.name}: ${alternativeUri}`);
-                        const response = await axios.get(alternativeUri, { 
-                          timeout: 5000,
-                          headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                          }
-                        });
-                        offchainMetadata = response.data;
-                        metadataFetched = true;
-                      } catch (err) {
-                        console.log(`Gateway ${ipfsGateways[i]} failed for ${nft.name}`);
+                  let metadataFetched = false;
+                  let offchainMetadata: any = null;
+                  
+                  // Try primary gateway
+                  try {
+                    const response = await axios.get(metadataUri, { 
+                      timeout: 5000,
+                      headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                      }
+                    });
+                    offchainMetadata = response.data;
+                    metadataFetched = true;
+                  } catch (error) {
+                    // If IPFS and primary gateway fails, try other gateways
+                    if (nft.uri.startsWith('ipfs://') && !metadataFetched) {
+                      const ipfsHash = nft.uri.replace('ipfs://', '');
+                      for (let i = 1; i < ipfsGateways.length && !metadataFetched; i++) {
+                        try {
+                          const alternativeUri = ipfsGateways[i] + ipfsHash;
+                          console.log(`Trying alternative IPFS gateway for ${nft.name}: ${alternativeUri}`);
+                          const response = await axios.get(alternativeUri, { 
+                            timeout: 5000,
+                            headers: {
+                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                            }
+                          });
+                          offchainMetadata = response.data;
+                          metadataFetched = true;
+                        } catch (err) {
+                          console.log(`Gateway ${ipfsGateways[i]} failed for ${nft.name}`);
+                        }
                       }
                     }
+                    
+                    if (!metadataFetched) {
+                      throw error;
+                    }
                   }
-                  
-                  if (!metadataFetched) {
-                    throw error;
-                  }
-                }
                 
                 if (metadataFetched && offchainMetadata) {
                   
@@ -257,7 +258,7 @@ export async function POST(request: NextRequest) {
                     nft.estimatedValue = floorPrice;
                     nft.hasMarketValue = true;
                   }
-                }
+                  }
                 } catch (error) {
                   console.log(`Failed to fetch metadata for ${nft.name}: ${metadataUri}`, error);
                 }

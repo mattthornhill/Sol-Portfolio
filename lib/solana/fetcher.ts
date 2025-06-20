@@ -110,11 +110,16 @@ export class SolanaFetcher {
           
           nfts.push({
             mint: tokenInfo.mint,
-            pubkey: account.pubkey,
+            pubkey: new PublicKey(tokenInfo.mint),
+            tokenAccount: account.pubkey,
             name: 'Unknown NFT', // Will be updated with actual metadata
             symbol: 'NFT',
             uri: '',
             rentExempt: rentExempt / 1e9, // Convert to SOL
+            accountsRent: rentExempt / 1e9, // Placeholder - will be calculated properly later
+            burnValue: rentExempt / 1e9, // Placeholder
+            hasMarketValue: false,
+            isCompressed: false,
           });
         }
       }

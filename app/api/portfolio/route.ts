@@ -74,7 +74,8 @@ export async function POST(request: NextRequest) {
         await delay(100);
         
         // Fetch token accounts with retry logic
-        let tokenAccounts, token2022Accounts;
+        let tokenAccounts = null;
+        let token2022Accounts = null;
         retries = 3;
         while (retries > 0) {
           try {
@@ -96,6 +97,10 @@ export async function POST(request: NextRequest) {
               throw error;
             }
           }
+        }
+        
+        if (!tokenAccounts || !token2022Accounts) {
+          throw new Error('Failed to fetch token accounts after retries');
         }
 
         const allAccounts = [...tokenAccounts.value, ...token2022Accounts.value];
