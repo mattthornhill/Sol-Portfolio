@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/nfts/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/portfolio/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/burn/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}
