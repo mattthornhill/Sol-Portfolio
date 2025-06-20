@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { NFTAsset } from '@/types/portfolio';
 
-export default function PortfolioPage() {
+function PortfolioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { wallets } = useWalletStore();
@@ -277,5 +277,20 @@ export default function PortfolioPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PortfolioPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Loading portfolio...</p>
+        </div>
+      </div>
+    }>
+      <PortfolioContent />
+    </Suspense>
   );
 }
