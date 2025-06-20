@@ -20,6 +20,7 @@ export interface NFTAsset {
   mint: string;
   pubkey: PublicKey;
   tokenAccount: PublicKey;
+  owner?: string; // Wallet address that owns this NFT
   name: string;
   symbol: string;
   uri: string;

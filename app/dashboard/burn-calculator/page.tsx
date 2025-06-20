@@ -6,20 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/store/wallet-store';
 import { NFTAsset } from '@/types/portfolio';
-import { Loader2, Flame, DollarSign, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, Flame, DollarSign, AlertCircle, ArrowLeft, Wallet, Lock, CheckSquare } from 'lucide-react';
 import { NFTGrid } from '@/components/nft/nft-grid';
 import { BurnSummary } from '@/components/nft/burn-summary';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export default function BurnCalculatorPage() {
   const router = useRouter();
   const { wallets } = useWalletStore();
+  const { publicKey } = useWallet();
   const validWallets = wallets.filter(w => w.isValid);
   const addresses = validWallets.map(w => w.address);
   const [selectedNFTs, setSelectedNFTs] = useState<Set<string>>(new Set());
   const [priceFilter, setPriceFilter] = useState<'all' | 'worthless' | 'valuable'>('all');
+  const [walletFilter, setWalletFilter] = useState<'all' | 'connected'>('all');
 
   const { data: nfts, isLoading, error, refetch } = useQuery({
     queryKey: ['nfts', addresses],
@@ -68,6 +71,14 @@ export default function BurnCalculatorPage() {
   }
 
   const filteredNFTs = nfts?.filter(nft => {
+    // Filter by wallet
+    if (walletFilter === 'connected' && publicKey) {
+      if (nft.owner !== publicKey.toString()) {
+        return false;
+      }
+    }
+    
+    // Filter by price
     if (priceFilter === 'worthless') {
       return !nft.hasMarketValue || nft.floorPrice === 0;
     }
@@ -80,6 +91,14 @@ export default function BurnCalculatorPage() {
   const selectedNFTData = filteredNFTs.filter(nft => selectedNFTs.has(nft.mint));
 
   const toggleNFT = (mint: string) => {
+    const nft = nfts?.find(n => n.mint === mint);
+    
+    // Only allow selecting NFTs from connected wallet
+    if (publicKey && nft?.owner !== publicKey.toString()) {
+      toast.error('You can only burn NFTs from your connected wallet');
+      return;
+    }
+    
     const newSelected = new Set(selectedNFTs);
     if (newSelected.has(mint)) {
       newSelected.delete(mint);
@@ -90,7 +109,11 @@ export default function BurnCalculatorPage() {
   };
 
   const selectAll = () => {
-    const allMints = new Set(filteredNFTs.map(nft => nft.mint));
+    // Only select NFTs from connected wallet
+    const selectableNFTs = publicKey 
+      ? filteredNFTs.filter(nft => nft.owner === publicKey.toString())
+      : filteredNFTs;
+    const allMints = new Set(selectableNFTs.map(nft => nft.mint));
     setSelectedNFTs(allMints);
   };
 
@@ -131,13 +154,76 @@ export default function BurnCalculatorPage() {
             <CardTitle className="text-base">Important Information</CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
           <p className="text-sm text-muted-foreground">
             Burning NFTs is permanent and cannot be undone. Always verify the floor price before burning.
             Some NFTs may have sentimental or future value despite current low prices.
           </p>
+          {publicKey ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Connected wallet: {publicKey.toString().slice(0, 4)}...{publicKey.toString().slice(-4)}
+              </p>
+              {addresses.length > 1 && (
+                <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">
+                  ⚠️ You can only burn NFTs from your connected wallet. NFTs from other wallets are shown for reference only.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+              Connect a wallet to burn NFTs
+            </p>
+          )}
         </CardContent>
       </Card>
+      
+      {/* Wallet Filter */}
+      {addresses.length > 1 && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <Wallet className="h-5 w-5 text-muted-foreground" />
+              <div className="flex gap-2">
+                <Button
+                  variant={walletFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setWalletFilter('all')}
+                >
+                  All Wallets ({nfts?.length || 0} NFTs)
+                </Button>
+                {publicKey && (
+                  <Button
+                    variant={walletFilter === 'connected' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setWalletFilter('connected')}
+                  >
+                    Connected Wallet Only ({nfts?.filter(n => n.owner === publicKey.toString()).length || 0} NFTs)
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Legend */}
+      {publicKey && addresses.length > 1 && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckSquare className="h-4 w-4 text-primary" />
+                <span>Can burn (from connected wallet)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">View only (from other wallets)</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* NFT Grid - 2 columns */}

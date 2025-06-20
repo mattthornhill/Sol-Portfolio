@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { NFTAsset } from '@/types/portfolio';
 import Image from 'next/image';
-import { ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { ExternalLink, Image as ImageIcon, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 interface NFTGridProps {
   nfts: NFTAsset[];
@@ -27,6 +28,8 @@ export function NFTGrid({
   priceFilter,
   onPriceFilterChange,
 }: NFTGridProps) {
+  const { publicKey } = useWallet();
+  
   const formatSOL = (value: number) => {
     return value.toFixed(4);
   };
@@ -78,23 +81,35 @@ export function NFTGrid({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {nfts.map((nft) => (
-              <div
-                key={nft.mint}
-                className={cn(
-                  "relative rounded-lg border p-3 cursor-pointer transition-all",
-                  selectedNFTs.has(nft.mint) 
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
-                    : "hover:border-primary/50"
-                )}
-                onClick={() => onToggleNFT(nft.mint)}
-              >
+            {nfts.map((nft) => {
+              const isOwned = !publicKey || nft.owner === publicKey.toString();
+              const canBurn = publicKey && nft.owner === publicKey.toString();
+              
+              return (
+                <div
+                  key={nft.mint}
+                  className={cn(
+                    "relative rounded-lg border p-3 transition-all",
+                    !canBurn && "opacity-60 cursor-not-allowed",
+                    canBurn && "cursor-pointer",
+                    selectedNFTs.has(nft.mint) 
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
+                      : canBurn && "hover:border-primary/50"
+                  )}
+                  onClick={() => canBurn && onToggleNFT(nft.mint)}
+                >
                 <div className="absolute top-2 left-2 z-10">
-                  <Checkbox
-                    checked={selectedNFTs.has(nft.mint)}
-                    onCheckedChange={() => onToggleNFT(nft.mint)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                  {canBurn ? (
+                    <Checkbox
+                      checked={selectedNFTs.has(nft.mint)}
+                      onCheckedChange={() => onToggleNFT(nft.mint)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <div className="h-4 w-4 rounded bg-muted flex items-center justify-center">
+                      <Lock className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="aspect-square relative mb-3 bg-muted rounded-md overflow-hidden">
@@ -148,6 +163,14 @@ export function NFTGrid({
                       </p>
                     </div>
                   )}
+                  
+                  {!canBurn && nft.owner && (
+                    <div className="pt-1">
+                      <p className="text-xs text-muted-foreground truncate">
+                        Wallet: {nft.owner.slice(0, 4)}...{nft.owner.slice(-4)}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <a
@@ -162,7 +185,8 @@ export function NFTGrid({
                   </Button>
                 </a>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>

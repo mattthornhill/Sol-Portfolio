@@ -22,8 +22,7 @@ export default function PortfolioPage() {
   const addresses = validWallets.map(w => w.address);
 
   const { data: portfolios, isLoading, error, refetch, isFetching } = useMultiplePortfolios(addresses);
-  const summary = usePortfolioSummary(portfolios || []);
-
+  
   // Fetch NFTs
   const { data: nfts, isLoading: nftsLoading } = useQuery({
     queryKey: ['nfts', addresses],
@@ -34,6 +33,9 @@ export default function PortfolioPage() {
     enabled: addresses.length > 0,
     staleTime: 60000, // 1 minute
   });
+  
+  // Calculate summary with NFT data
+  const summary = usePortfolioSummary(portfolios || [], nfts || []);
 
   // Refetch when wallet addresses change
   useEffect(() => {
@@ -185,7 +187,7 @@ export default function PortfolioPage() {
           <CardContent>
             <div className="text-2xl font-bold">{summary.nftCount}</div>
             <p className="text-xs text-muted-foreground">
-              {summary.topNFTCollections.length} collections
+              {formatCurrency(summary.totalNFTValue)}
             </p>
           </CardContent>
         </Card>

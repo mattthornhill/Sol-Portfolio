@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { WalletPortfolio, PortfolioSummary } from '@/types/portfolio';
+import { WalletPortfolio, PortfolioSummary, NFTAsset } from '@/types/portfolio';
 import axios from 'axios';
 
 async function fetchMultiplePortfolios(addresses: string[]): Promise<WalletPortfolio[]> {
@@ -40,17 +40,43 @@ export function useMultiplePortfolios(addresses: string[]) {
   });
 }
 
-export function usePortfolioSummary(portfolios: WalletPortfolio[]): PortfolioSummary {
+export function usePortfolioSummary(portfolios: WalletPortfolio[], nftData?: NFTAsset[]): PortfolioSummary {
   // Calculate summary statistics
-  const totalValue = portfolios.reduce((sum, p) => sum + p.totalValue, 0);
   const totalSol = portfolios.reduce((sum, p) => sum + p.solBalance, 0);
   const totalSolValue = portfolios.reduce((sum, p) => sum + p.solValue, 0);
   const totalTokenValue = portfolios.reduce(
     (sum, p) => sum + p.tokens.reduce((tokenSum, t) => tokenSum + (t.value || 0), 0),
     0
   );
-  const totalNFTValue = 0; // TODO: Implement NFT valuation
-  const nftCount = portfolios.reduce((sum, p) => sum + p.nfts.length, 0);
+  
+  // Get SOL price from first portfolio (they all should have the same price)
+  // Default to a reasonable price if not available to avoid NaN
+  const solPrice = portfolios.length > 0 && portfolios[0].solPriceUSD ? portfolios[0].solPriceUSD : 145;
+  
+  // Use NFT data if provided (with floor prices), otherwise fall back to portfolio NFTs
+  const nftsToUse = nftData && nftData.length > 0 ? nftData : portfolios.flatMap(p => p.nfts);
+  
+  // Calculate NFT value based on floor prices (in SOL, then convert to USD)
+  const totalNFTValueSOL = nftsToUse.reduce((nftSum, nft) => {
+    // Use floor price if available and greater than burn value, otherwise use burn value
+    const floorPrice = nft.floorPrice && !isNaN(nft.floorPrice) ? nft.floorPrice : 0;
+    const burnValue = nft.burnValue && !isNaN(nft.burnValue) ? nft.burnValue : 0;
+    const marketValue = (floorPrice > 0) ? floorPrice : burnValue;
+    return nftSum + marketValue;
+  }, 0);
+  
+  // Convert NFT value to USD
+  const totalNFTValue = isNaN(totalNFTValueSOL) || isNaN(solPrice) ? 0 : totalNFTValueSOL * solPrice;
+  
+  const nftCount = nftsToUse.length;
+  
+  // Ensure all values are valid numbers
+  const safeTotal = (
+    (isNaN(totalSolValue) ? 0 : totalSolValue) +
+    (isNaN(totalTokenValue) ? 0 : totalTokenValue) +
+    (isNaN(totalNFTValue) ? 0 : totalNFTValue)
+  );
+  const totalValue = safeTotal;
 
   // Aggregate all tokens
   const tokenMap = new Map<string, typeof portfolios[0]['tokens'][0]>();
@@ -75,20 +101,22 @@ export function usePortfolioSummary(portfolios: WalletPortfolio[]): PortfolioSum
 
   // Aggregate NFT collections
   const collectionMap = new Map<string, { count: number; value: number }>();
-  portfolios.forEach(portfolio => {
-    portfolio.nfts.forEach(nft => {
-      const collectionName = nft.collection?.name || 'Unknown Collection';
-      const existing = collectionMap.get(collectionName);
-      if (existing) {
-        existing.count += 1;
-        existing.value += nft.estimatedValue || 0;
-      } else {
-        collectionMap.set(collectionName, {
-          count: 1,
-          value: nft.estimatedValue || 0,
-        });
-      }
-    });
+  nftsToUse.forEach(nft => {
+    const collectionName = nft.collection?.name || 'Unknown Collection';
+    const existing = collectionMap.get(collectionName);
+    const floorPrice = nft.floorPrice && !isNaN(nft.floorPrice) ? nft.floorPrice : 0;
+    const burnValue = nft.burnValue && !isNaN(nft.burnValue) ? nft.burnValue : 0;
+    const nftValueSOL = (floorPrice > 0) ? floorPrice : burnValue;
+    const nftValueUSD = isNaN(nftValueSOL) || isNaN(solPrice) ? 0 : nftValueSOL * solPrice;
+    if (existing) {
+      existing.count += 1;
+      existing.value += nftValueUSD;
+    } else {
+      collectionMap.set(collectionName, {
+        count: 1,
+        value: nftValueUSD,
+      });
+    }
   });
 
   const topNFTCollections = Array.from(collectionMap.entries())

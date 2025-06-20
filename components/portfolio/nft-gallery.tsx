@@ -69,24 +69,46 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
     acc[collectionName].push(nft);
     return acc;
   }, {} as Record<string, NFTAsset[]>);
+  
+  // Calculate total market value
+  const totalMarketValue = nfts.reduce((sum, nft) => {
+    const value = (nft.floorPrice && nft.floorPrice > 0) ? nft.floorPrice : nft.burnValue;
+    return sum + value;
+  }, 0);
 
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5" />
-            NFT Collection ({nfts.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              NFT Collection ({nfts.length})
+            </CardTitle>
+            <div className="text-sm text-muted-foreground">
+              Total Value: ◎ {formatSOL(totalMarketValue)} ({formatUSD(totalMarketValue)})
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {Object.entries(collections).map(([collection, collectionNFTs]) => (
-              <div key={collection} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{collection}</h3>
-                  <Badge variant="secondary">{collectionNFTs.length} NFTs</Badge>
-                </div>
+            {Object.entries(collections).map(([collection, collectionNFTs]) => {
+              const collectionValue = collectionNFTs.reduce((sum, nft) => {
+                const value = (nft.floorPrice && nft.floorPrice > 0) ? nft.floorPrice : nft.burnValue;
+                return sum + value;
+              }, 0);
+              
+              return (
+                <div key={collection} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{collection}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Value: ◎ {formatSOL(collectionValue)} ({formatUSD(collectionValue)})
+                      </p>
+                    </div>
+                    <Badge variant="secondary">{collectionNFTs.length} NFTs</Badge>
+                  </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {collectionNFTs.slice(0, 6).map((nft) => (
@@ -112,10 +134,23 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
                       {/* Overlay with info */}
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
                         <p className="text-white text-xs font-medium truncate">{nft.name}</p>
-                        <div className="flex items-center justify-between text-white/80 text-xs">
-                          <span>◎ {formatSOL(nft.burnValue)}</span>
-                          <span>{formatUSD(nft.burnValue)}</span>
-                        </div>
+                        {nft.floorPrice && nft.floorPrice > 0 ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-white/80 text-xs">
+                              <span>Floor:</span>
+                              <span>◎ {formatSOL(nft.floorPrice)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-white/60 text-xs">
+                              <span>Burn:</span>
+                              <span>◎ {formatSOL(nft.burnValue)}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between text-white/80 text-xs">
+                            <span>Burn:</span>
+                            <span>◎ {formatSOL(nft.burnValue)}</span>
+                          </div>
+                        )}
                       </div>
                     </button>
                   ))}
@@ -131,8 +166,9 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
                     View all {collectionNFTs.length} NFTs
                   </Button>
                 )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -277,10 +313,23 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
                   {/* Overlay with info */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
                     <p className="text-white text-xs font-medium truncate">{nft.name}</p>
-                    <div className="flex items-center justify-between text-white/80 text-xs">
-                      <span>◎ {formatSOL(nft.burnValue)}</span>
-                      <span>{formatUSD(nft.burnValue)}</span>
-                    </div>
+                    {nft.floorPrice && nft.floorPrice > 0 ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-white/80 text-xs">
+                          <span>Floor:</span>
+                          <span>◎ {formatSOL(nft.floorPrice)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-white/60 text-xs">
+                          <span>Burn:</span>
+                          <span>◎ {formatSOL(nft.burnValue)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between text-white/80 text-xs">
+                        <span>Burn:</span>
+                        <span>◎ {formatSOL(nft.burnValue)}</span>
+                      </div>
+                    )}
                   </div>
                 </button>
               ))}

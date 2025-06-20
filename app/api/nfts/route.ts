@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
             mint: mint.toString(),
             pubkey: mint,
             tokenAccount: account.pubkey,
+            owner: address, // Add the wallet address that owns this NFT
             name: 'Unknown NFT',
             symbol: 'NFT',
             uri: '',
