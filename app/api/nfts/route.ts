@@ -114,8 +114,12 @@ export async function POST(request: NextRequest) {
             nft.uri = nftData.uri || '';
             
             // Debug logging for specific collections
-            if (nft.name.toLowerCase().includes('metahelix')) {
-              console.log(`MetaHelix NFT found: ${nft.name}, URI: ${nft.uri}`);
+            if (nft.name.toLowerCase().includes('metahelix') || nft.name.toLowerCase().includes('botborg')) {
+              console.log(`[NFT Debug] ${nft.name} found:`, {
+                name: nft.name,
+                uri: nft.uri,
+                mint: mint.toString()
+              });
             }
             
             // Try to extract collection name from NFT name
@@ -155,7 +159,14 @@ export async function POST(request: NextRequest) {
                 'https://cloudflare-ipfs.com/ipfs/'
               ];
               
-              if (metadataUri.startsWith('ipfs://')) {
+              // Check for known broken domains
+              const brokenDomains = ['nft.metahelix.io'];
+              const isKnownBroken = brokenDomains.some(domain => metadataUri.includes(domain));
+              
+              if (isKnownBroken) {
+                console.log(`Known broken metadata server for ${nft.name}, skipping fetch`);
+                metadataUri = '';
+              } else if (metadataUri.startsWith('ipfs://')) {
                 // Try multiple IPFS gateways
                 const ipfsHash = metadataUri.replace('ipfs://', '');
                 metadataUri = ipfsGateways[0] + ipfsHash;
@@ -214,9 +225,9 @@ export async function POST(request: NextRequest) {
                   if (offchainMetadata.image) {
                     let imageUri = offchainMetadata.image;
                     
-                    // Debug logging for MetaHelix
-                    if (nft.name.toLowerCase().includes('metahelix')) {
-                      console.log(`MetaHelix image URI: ${imageUri}`);
+                    // Debug logging for MetaHelix and Botborg
+                    if (nft.name.toLowerCase().includes('metahelix') || nft.name.toLowerCase().includes('botborg')) {
+                      console.log(`[NFT Debug] ${nft.name} image URI:`, imageUri);
                     }
                     
                     if (imageUri.startsWith('ipfs://')) {
@@ -232,8 +243,8 @@ export async function POST(request: NextRequest) {
                       nft.image = imageUri;
                       
                       // Debug logging for final image URI
-                      if (nft.name.toLowerCase().includes('metahelix')) {
-                        console.log(`MetaHelix final image URI: ${imageUri}`);
+                      if (nft.name.toLowerCase().includes('metahelix') || nft.name.toLowerCase().includes('botborg')) {
+                        console.log(`[NFT Debug] ${nft.name} final image URI:`, imageUri);
                       }
                     }
                   }
@@ -259,8 +270,21 @@ export async function POST(request: NextRequest) {
                     nft.hasMarketValue = true;
                   }
                   }
-                } catch (error) {
-                  console.log(`Failed to fetch metadata for ${nft.name}: ${metadataUri}`, error);
+                } catch (error: any) {
+                  console.log(`Failed to fetch metadata for ${nft.name}: ${metadataUri}`, error.message);
+                  if (nft.name.toLowerCase().includes('metahelix') || nft.name.toLowerCase().includes('botborg')) {
+                    console.error(`[NFT Debug] Full error for ${nft.name}:`, error.message);
+                  }
+                  
+                  // For NFTs with broken metadata servers, use a placeholder image
+                  if (error.code === 'ENOTFOUND' || error.message?.includes('ENOTFOUND')) {
+                    console.log(`Metadata server down for ${nft.name}, using placeholder`);
+                    // Use collection-specific placeholder if available
+                    if (nft.name.toLowerCase().includes('metahelix')) {
+                      // Use a generic placeholder or the collection logo if we have it
+                      nft.image = '/placeholder-nft.png';
+                    }
+                  }
                 }
               }
             }

@@ -30,14 +30,15 @@ export default function PortfolioPage() {
   const { data: portfolios, isLoading, error, refetch, isFetching } = useMultiplePortfolios(addresses, autoRefresh);
   
   // Fetch NFTs
-  const { data: nfts, isLoading: nftsLoading } = useQuery({
+  const { data: nfts, isLoading: nftsLoading, refetch: refetchNFTs } = useQuery({
     queryKey: ['nfts', addresses],
     queryFn: async () => {
       const response = await axios.post('/api/nfts', { addresses });
       return response.data.nfts as NFTAsset[];
     },
     enabled: addresses.length > 0,
-    staleTime: 60000, // 1 minute
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache
   });
   
   // Calculate summary with NFT data

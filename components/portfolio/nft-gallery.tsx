@@ -119,17 +119,17 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
                       onClick={() => setSelectedNFT(nft)}
                       className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
                     >
-                      {nft.image && !imageError.has(nft.mint) ? (
+                      {!imageError.has(nft.mint) ? (
                         <NFTImage
-                          src={nft.image}
+                          src={nft.image || ''}
                           alt={nft.name}
                           fill
                           className="object-cover"
                           onError={() => handleImageError(nft.mint)}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                          <ImageIcon className="h-8 w-8 text-white/50" />
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
                         </div>
                       )}
                       
@@ -189,17 +189,17 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Image */}
               <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                {selectedNFT.image && !imageError.has(selectedNFT.mint) ? (
+                {!imageError.has(selectedNFT.mint) ? (
                   <NFTImage
-                    src={selectedNFT.image}
+                    src={selectedNFT.image || ''}
                     alt={selectedNFT.name}
                     fill
                     className="object-contain"
                     onError={() => handleImageError(selectedNFT.mint)}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="h-16 w-16 text-muted-foreground" />
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <ImageIcon className="h-16 w-16 text-muted-foreground/50" />
                   </div>
                 )}
               </div>
@@ -298,17 +298,17 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
                   }}
                   className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
                 >
-                  {nft.image && !imageError.has(nft.mint) ? (
+                  {!imageError.has(nft.mint) ? (
                     <NFTImage
-                      src={nft.image}
+                      src={nft.image || ''}
                       alt={nft.name}
                       fill
                       className="object-cover"
                       onError={() => handleImageError(nft.mint)}
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                      <ImageIcon className="h-8 w-8 text-white/50" />
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
                     </div>
                   )}
                   

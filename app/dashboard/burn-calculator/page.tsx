@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/store/wallet-store';
 import { NFTAsset } from '@/types/portfolio';
-import { Loader2, Flame, DollarSign, AlertCircle, ArrowLeft, Wallet, Lock, CheckSquare } from 'lucide-react';
+import { Loader2, Flame, DollarSign, AlertCircle, ArrowLeft, Wallet, Lock, CheckSquare, Filter } from 'lucide-react';
 import { NFTGrid } from '@/components/nft/nft-grid';
 import { BurnSummary } from '@/components/nft/burn-summary';
 import { useQuery } from '@tanstack/react-query';
@@ -19,10 +19,15 @@ export default function BurnCalculatorPage() {
   const { wallets } = useWalletStore();
   const { publicKey } = useWallet();
   const validWallets = wallets.filter(w => w.isValid);
-  const addresses = validWallets.map(w => w.address);
+  const [selectedWallet, setSelectedWallet] = useState<string>('all');
   const [selectedNFTs, setSelectedNFTs] = useState<Set<string>>(new Set());
   const [priceFilter, setPriceFilter] = useState<'all' | 'worthless' | 'valuable'>('all');
   const [walletFilter, setWalletFilter] = useState<'all' | 'connected'>('all');
+  
+  // Filter addresses based on selection
+  const addresses = selectedWallet === 'all' 
+    ? validWallets.map(w => w.address)
+    : validWallets.filter(w => w.address === selectedWallet).map(w => w.address);
 
   const { data: nfts, isLoading, error, refetch } = useQuery({
     queryKey: ['nfts', addresses],
@@ -137,7 +142,10 @@ export default function BurnCalculatorPage() {
           <div>
             <h1 className="text-3xl font-bold">NFT Burn Calculator</h1>
             <p className="text-muted-foreground mt-1">
-              Calculate SOL recovery value from burning NFTs
+              {selectedWallet === 'all' 
+                ? `Analyzing NFTs from ${validWallets.length} wallet${validWallets.length !== 1 ? 's' : ''}`
+                : `Analyzing NFTs from ${validWallets.find(w => w.address === selectedWallet)?.nickname || selectedWallet.slice(0, 8) + '...'}`
+              }
             </p>
           </div>
           <Button onClick={() => refetch()} variant="outline">
@@ -179,29 +187,49 @@ export default function BurnCalculatorPage() {
       </Card>
       
       {/* Wallet Filter */}
-      {addresses.length > 1 && (
+      {validWallets.length > 1 && (
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <Wallet className="h-5 w-5 text-muted-foreground" />
-              <div className="flex gap-2">
+              <Filter className="h-5 w-5 text-muted-foreground" />
+              <div className="flex gap-2 flex-wrap">
                 <Button
-                  variant={walletFilter === 'all' ? 'default' : 'outline'}
+                  variant={selectedWallet === 'all' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setWalletFilter('all')}
+                  onClick={() => setSelectedWallet('all')}
                 >
-                  All Wallets ({nfts?.length || 0} NFTs)
+                  All Wallets
                 </Button>
-                {publicKey && (
+                {validWallets.map((wallet) => (
+                  <Button
+                    key={wallet.address}
+                    variant={selectedWallet === wallet.address ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedWallet(wallet.address)}
+                  >
+                    {wallet.nickname || `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`}
+                  </Button>
+                ))}
+              </div>
+              {/* Connected wallet filter */}
+              {publicKey && (
+                <div className="flex items-center gap-2 pl-4 border-l">
+                  <Button
+                    variant={walletFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setWalletFilter('all')}
+                  >
+                    Show All NFTs
+                  </Button>
                   <Button
                     variant={walletFilter === 'connected' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setWalletFilter('connected')}
                   >
-                    Connected Wallet Only ({nfts?.filter(n => n.owner === publicKey.toString()).length || 0} NFTs)
+                    Connected Only
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
