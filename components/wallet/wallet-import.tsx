@@ -14,9 +14,10 @@ import { cn } from '@/lib/utils';
 
 interface WalletImportProps {
   onImport: (wallets: ImportedWallet[]) => void;
+  existingWallets?: ImportedWallet[];
 }
 
-export function WalletImport({ onImport }: WalletImportProps) {
+export function WalletImport({ onImport, existingWallets = [] }: WalletImportProps) {
   const [manualAddress, setManualAddress] = useState('');
   const [nickname, setNickname] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -38,8 +39,18 @@ export function WalletImport({ onImport }: WalletImportProps) {
       }
 
       const validWallets = result.wallets.filter(w => w.isValid);
-      if (validWallets.length > 0) {
-        onImport(validWallets);
+      
+      // Check for duplicates
+      const existingAddresses = new Set(existingWallets.map(w => w.address));
+      const newWallets = validWallets.filter(w => !existingAddresses.has(w.address));
+      const duplicates = validWallets.filter(w => existingAddresses.has(w.address));
+      
+      if (duplicates.length > 0) {
+        setCsvErrors(prev => [...prev, `${duplicates.length} duplicate wallet(s) were skipped`]);
+      }
+      
+      if (newWallets.length > 0) {
+        onImport(newWallets);
       }
     } catch (error) {
       setCsvErrors(['Failed to parse CSV file']);
@@ -64,9 +75,16 @@ export function WalletImport({ onImport }: WalletImportProps) {
       setValidationError(validation.error || 'Invalid address');
       return;
     }
+    
+    // Check for duplicates
+    const trimmedAddress = manualAddress.trim();
+    if (existingWallets.some(w => w.address === trimmedAddress)) {
+      setValidationError('This wallet has already been imported');
+      return;
+    }
 
     onImport([{
-      address: manualAddress.trim(),
+      address: trimmedAddress,
       nickname: nickname.trim() || undefined,
       isValid: true
     }]);

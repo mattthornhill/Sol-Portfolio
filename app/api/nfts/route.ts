@@ -30,6 +30,8 @@ const COLLECTION_FLOOR_PRICES: Record<string, number> = {
   'botborg': 0.05,
   'ape shoebox': 0.01,
   'solana nft': 0.001,
+  'metahelix': 0.01,
+  'metahelix token': 0.01,
 };
 
 export async function POST(request: NextRequest) {
@@ -141,9 +143,17 @@ export async function POST(request: NextRequest) {
             if (nft.uri) {
               // Handle IPFS URIs and other formats
               let metadataUri = nft.uri;
+              const ipfsGateways = [
+                'https://nftstorage.link/ipfs/',
+                'https://gateway.pinata.cloud/ipfs/',
+                'https://ipfs.io/ipfs/',
+                'https://cloudflare-ipfs.com/ipfs/'
+              ];
+              
               if (metadataUri.startsWith('ipfs://')) {
-                // Use a more reliable IPFS gateway
-                metadataUri = metadataUri.replace('ipfs://', 'https://nftstorage.link/ipfs/');
+                // Try multiple IPFS gateways
+                const ipfsHash = metadataUri.replace('ipfs://', '');
+                metadataUri = ipfsGateways[0] + ipfsHash;
               } else if (metadataUri.startsWith('https://arweave.net/')) {
                 // Arweave URLs are usually fine as-is
               } else if (!metadataUri.startsWith('http')) {
@@ -165,7 +175,9 @@ export async function POST(request: NextRequest) {
                   if (offchainMetadata.image) {
                     let imageUri = offchainMetadata.image;
                     if (imageUri.startsWith('ipfs://')) {
-                      imageUri = imageUri.replace('ipfs://', 'https://nftstorage.link/ipfs/');
+                      // Use the same gateway as metadata for consistency
+                      const ipfsHash = imageUri.replace('ipfs://', '');
+                      imageUri = ipfsGateways[0] + ipfsHash;
                     } else if (imageUri.startsWith('https://arweave.net/')) {
                       // Arweave URLs are usually fine
                     } else if (!imageUri.startsWith('http')) {

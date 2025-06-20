@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/store/wallet-store';
 import { useMultiplePortfolios, usePortfolioSummary } from '@/hooks/usePortfolio';
-import { Loader2, TrendingUp, Wallet, Coins, Image, ArrowLeft } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, Coins, Image, ArrowLeft, Filter, RefreshCw } from 'lucide-react';
 import { PortfolioStats } from '@/components/portfolio/portfolio-stats';
 import { TokenList } from '@/components/portfolio/token-list';
 import { WalletBreakdown } from '@/components/portfolio/wallet-breakdown';
@@ -18,10 +18,16 @@ import { NFTAsset } from '@/types/portfolio';
 export default function PortfolioPage() {
   const router = useRouter();
   const { wallets } = useWalletStore();
+  const [selectedWallet, setSelectedWallet] = useState<string>('all');
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const validWallets = wallets.filter(w => w.isValid);
-  const addresses = validWallets.map(w => w.address);
+  
+  // Filter addresses based on selection
+  const addresses = selectedWallet === 'all' 
+    ? validWallets.map(w => w.address)
+    : validWallets.filter(w => w.address === selectedWallet).map(w => w.address);
 
-  const { data: portfolios, isLoading, error, refetch, isFetching } = useMultiplePortfolios(addresses);
+  const { data: portfolios, isLoading, error, refetch, isFetching } = useMultiplePortfolios(addresses, autoRefresh);
   
   // Fetch NFTs
   const { data: nfts, isLoading: nftsLoading } = useQuery({
@@ -108,35 +114,70 @@ export default function PortfolioPage() {
           Back to Wallets
         </Button>
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold">Portfolio Analysis</h1>
             <p className="text-muted-foreground mt-1">
-              Analyzing {summary.walletCount} wallet{summary.walletCount !== 1 ? 's' : ''}
+              {selectedWallet === 'all' 
+                ? `Analyzing ${summary.walletCount} wallet${summary.walletCount !== 1 ? 's' : ''}`
+                : `Analyzing ${validWallets.find(w => w.address === selectedWallet)?.nickname || selectedWallet.slice(0, 8) + '...'}`
+              }
             </p>
           </div>
-          <Button onClick={() => refetch()} variant="outline" disabled={isFetching}>
-            {isFetching ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Refreshing...
-              </>
-            ) : (
-              'Refresh'
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* Show loading overlay when fetching */}
-      {isFetching && !isLoading && (
-        <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-40 flex items-center justify-center">
-          <div className="bg-card p-4 rounded-lg shadow-lg flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span>Updating portfolio data...</span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={autoRefresh ? "outline" : "ghost"}
+              size="sm"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              title={autoRefresh ? "Auto-refresh is ON (every 2 minutes)" : "Auto-refresh is OFF"}
+            >
+              <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'text-primary' : 'text-muted-foreground'}`} />
+            </Button>
+            <Button onClick={() => refetch()} variant="outline" disabled={isFetching}>
+              {isFetching ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                'Refresh'
+              )}
+            </Button>
           </div>
         </div>
-      )}
+        
+        {/* Wallet Filter */}
+        {validWallets.length > 1 && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <Filter className="h-5 w-5 text-muted-foreground" />
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant={selectedWallet === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedWallet('all')}
+                  >
+                    All Wallets
+                  </Button>
+                  {validWallets.map((wallet) => (
+                    <Button
+                      key={wallet.address}
+                      variant={selectedWallet === wallet.address ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedWallet(wallet.address)}
+                    >
+                      {wallet.nickname || `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Only show loading overlay on initial load, not on background refresh */}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

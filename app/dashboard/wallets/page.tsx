@@ -56,7 +56,7 @@ export default function WalletsPage() {
 
       <div className="space-y-6">
         {showImport || wallets.length === 0 ? (
-          <WalletImport onImport={handleImport} />
+          <WalletImport onImport={handleImport} existingWallets={wallets} />
         ) : (
           <>
             <div className="flex justify-between items-center">

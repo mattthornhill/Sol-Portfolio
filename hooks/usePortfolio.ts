@@ -27,7 +27,7 @@ export function useWalletPortfolio(address: string) {
   });
 }
 
-export function useMultiplePortfolios(addresses: string[]) {
+export function useMultiplePortfolios(addresses: string[], autoRefresh = true) {
   // Sort addresses to ensure consistent query key
   const sortedAddresses = [...addresses].sort();
   
@@ -35,8 +35,8 @@ export function useMultiplePortfolios(addresses: string[]) {
     queryKey: ['portfolios', sortedAddresses],
     queryFn: () => fetchMultiplePortfolios(addresses),
     enabled: addresses.length > 0,
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: autoRefresh ? 120000 : false, // 2 minutes instead of 1
+    staleTime: 60000, // 1 minute
   });
 }
 
