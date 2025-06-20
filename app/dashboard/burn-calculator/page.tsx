@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useWalletStore } from '@/store/wallet-store';
 import { NFTAsset } from '@/types/portfolio';
 import { Loader2, Flame, DollarSign, AlertCircle, ArrowLeft, Wallet, Lock, CheckSquare, Filter } from 'lucide-react';
@@ -16,27 +23,36 @@ import { useWallet } from '@solana/wallet-adapter-react';
 
 export default function BurnCalculatorPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { wallets } = useWalletStore();
   const { publicKey } = useWallet();
   const validWallets = wallets.filter(w => w.isValid);
-  const [selectedWallet, setSelectedWallet] = useState<string>('all');
+  
+  // Initialize with wallet from query param if provided
+  const walletFromQuery = searchParams.get('wallet');
+  const initialWallet = walletFromQuery && validWallets.find(w => w.address === walletFromQuery) 
+    ? walletFromQuery 
+    : validWallets[0]?.address || '';
+    
+  const [selectedWallet, setSelectedWallet] = useState<string>(initialWallet);
   const [selectedNFTs, setSelectedNFTs] = useState<Set<string>>(new Set());
   const [priceFilter, setPriceFilter] = useState<'all' | 'worthless' | 'valuable'>('all');
   const [walletFilter, setWalletFilter] = useState<'all' | 'connected'>('all');
   
-  // Filter addresses based on selection
-  const addresses = selectedWallet === 'all' 
-    ? validWallets.map(w => w.address)
-    : validWallets.filter(w => w.address === selectedWallet).map(w => w.address);
+  // Only show NFTs from selected wallet
+  const addresses = selectedWallet ? [selectedWallet] : [];
 
   const { data: nfts, isLoading, error, refetch } = useQuery({
     queryKey: ['nfts', addresses],
     queryFn: async () => {
-      const response = await axios.post('/api/nfts', { addresses });
+      const response = await axios.post('/api/nfts', { addresses }, {
+        timeout: 300000 // 5 minutes timeout for large wallet counts
+      });
       return response.data.nfts as NFTAsset[];
     },
     enabled: addresses.length > 0,
     staleTime: 60000, // 1 minute
+    retry: 1, // Only retry once on failure
   });
 
   useEffect(() => {
@@ -142,9 +158,9 @@ export default function BurnCalculatorPage() {
           <div>
             <h1 className="text-3xl font-bold">NFT Burn Calculator</h1>
             <p className="text-muted-foreground mt-1">
-              {selectedWallet === 'all' 
-                ? `Analyzing NFTs from ${validWallets.length} wallet${validWallets.length !== 1 ? 's' : ''}`
-                : `Analyzing NFTs from ${validWallets.find(w => w.address === selectedWallet)?.nickname || selectedWallet.slice(0, 8) + '...'}`
+              {selectedWallet && validWallets.find(w => w.address === selectedWallet) 
+                ? `Analyzing NFTs from ${validWallets.find(w => w.address === selectedWallet)?.nickname || selectedWallet.slice(0, 8) + '...'}`
+                : 'Select a wallet to analyze NFTs'
               }
             </p>
           </div>
@@ -192,25 +208,18 @@ export default function BurnCalculatorPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <Filter className="h-5 w-5 text-muted-foreground" />
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant={selectedWallet === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedWallet('all')}
-                >
-                  All Wallets
-                </Button>
-                {validWallets.map((wallet) => (
-                  <Button
-                    key={wallet.address}
-                    variant={selectedWallet === wallet.address ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedWallet(wallet.address)}
-                  >
-                    {wallet.nickname || `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`}
-                  </Button>
-                ))}
-              </div>
+              <Select value={selectedWallet} onValueChange={setSelectedWallet}>
+                <SelectTrigger className="w-[280px]">
+                  <SelectValue placeholder="Select a wallet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {validWallets.map((wallet) => (
+                    <SelectItem key={wallet.address} value={wallet.address}>
+                      {wallet.nickname || `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {/* Connected wallet filter */}
               {publicKey && (
                 <div className="flex items-center gap-2 pl-4 border-l">

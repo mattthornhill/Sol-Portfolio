@@ -5,6 +5,7 @@ import { WalletPortfolio } from '@/types/portfolio';
 import { ImportedWallet } from '@/types/wallet';
 import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 interface WalletBreakdownProps {
   portfolios: WalletPortfolio[];
@@ -12,6 +13,8 @@ interface WalletBreakdownProps {
 }
 
 export function WalletBreakdown({ portfolios, wallets }: WalletBreakdownProps) {
+  const router = useRouter();
+  
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -29,6 +32,9 @@ export function WalletBreakdown({ portfolios, wallets }: WalletBreakdownProps) {
     const wallet = wallets.find(w => w.address === address);
     return wallet?.nickname;
   };
+  
+  // Sort portfolios by value (highest first)
+  const sortedPortfolios = [...portfolios].sort((a, b) => b.totalValue - a.totalValue);
 
   return (
     <Card>
@@ -37,14 +43,15 @@ export function WalletBreakdown({ portfolios, wallets }: WalletBreakdownProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {portfolios.map((portfolio) => {
+          {sortedPortfolios.map((portfolio) => {
             const nickname = getWalletNickname(portfolio.address);
             const percentage = (portfolio.totalValue / portfolios.reduce((sum, p) => sum + p.totalValue, 0)) * 100;
             
             return (
               <div
                 key={portfolio.address}
-                className="p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                className="p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
+                onClick={() => router.push(`/dashboard/portfolio?wallet=${portfolio.address}`)}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">

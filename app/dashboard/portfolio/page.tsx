@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useWalletStore } from '@/store/wallet-store';
 import { useMultiplePortfolios, usePortfolioSummary } from '@/hooks/usePortfolio';
-import { Loader2, TrendingUp, Wallet, Coins, Image, ArrowLeft, Filter, RefreshCw } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, Coins, Image, ArrowLeft, Filter, RefreshCw, Flame } from 'lucide-react';
 import { PortfolioStats } from '@/components/portfolio/portfolio-stats';
 import { TokenList } from '@/components/portfolio/token-list';
 import { WalletBreakdown } from '@/components/portfolio/wallet-breakdown';
@@ -17,10 +24,18 @@ import { NFTAsset } from '@/types/portfolio';
 
 export default function PortfolioPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { wallets } = useWalletStore();
-  const [selectedWallet, setSelectedWallet] = useState<string>('all');
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const validWallets = wallets.filter(w => w.isValid);
+  
+  // Initialize with wallet from query param if provided
+  const walletFromQuery = searchParams.get('wallet');
+  const initialWallet = walletFromQuery && validWallets.find(w => w.address === walletFromQuery) 
+    ? walletFromQuery 
+    : 'all';
+    
+  const [selectedWallet, setSelectedWallet] = useState<string>(initialWallet);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   
   // Filter addresses based on selection
   const addresses = selectedWallet === 'all' 
@@ -126,6 +141,15 @@ export default function PortfolioPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {selectedWallet !== 'all' && (
+              <Button 
+                onClick={() => router.push(`/dashboard/burn-calculator?wallet=${selectedWallet}`)}
+                variant="outline"
+              >
+                <Flame className="h-4 w-4 mr-2" />
+                Burn NFTs
+              </Button>
+            )}
             <Button
               variant={autoRefresh ? "outline" : "ghost"}
               size="sm"
@@ -153,25 +177,21 @@ export default function PortfolioPage() {
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <Filter className="h-5 w-5 text-muted-foreground" />
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant={selectedWallet === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedWallet('all')}
-                  >
-                    All Wallets
-                  </Button>
-                  {validWallets.map((wallet) => (
-                    <Button
-                      key={wallet.address}
-                      variant={selectedWallet === wallet.address ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedWallet(wallet.address)}
-                    >
-                      {wallet.nickname || `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`}
-                    </Button>
-                  ))}
-                </div>
+                <Select value={selectedWallet} onValueChange={setSelectedWallet}>
+                  <SelectTrigger className="w-[280px]">
+                    <SelectValue placeholder="Select a wallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      All Wallets ({validWallets.length})
+                    </SelectItem>
+                    {validWallets.map((wallet) => (
+                      <SelectItem key={wallet.address} value={wallet.address}>
+                        {wallet.nickname || `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
