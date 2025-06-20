@@ -50,6 +50,7 @@ export function usePortfolioSummary(portfolios: WalletPortfolio[]): PortfolioSum
     0
   );
   const totalNFTValue = 0; // TODO: Implement NFT valuation
+  const nftCount = portfolios.reduce((sum, p) => sum + p.nfts.length, 0);
 
   // Aggregate all tokens
   const tokenMap = new Map<string, typeof portfolios[0]['tokens'][0]>();
@@ -101,7 +102,7 @@ export function usePortfolioSummary(portfolios: WalletPortfolio[]): PortfolioSum
     totalTokenValue,
     totalNFTValue,
     tokenCount: tokenMap.size,
-    nftCount: portfolios.reduce((sum, p) => sum + p.nfts.length, 0),
+    nftCount,
     walletCount: portfolios.length,
     topTokens,
     topNFTCollections,

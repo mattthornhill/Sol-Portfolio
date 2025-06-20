@@ -23,6 +23,7 @@ interface NFTGalleryProps {
 
 export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
   const [selectedNFT, setSelectedNFT] = useState<NFTAsset | null>(null);
+  const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
   const [imageError, setImageError] = useState<Set<string>>(new Set());
 
   const formatSOL = (value: number) => {
@@ -124,7 +125,7 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setSelectedNFT(collectionNFTs[0])}
+                    onClick={() => setSelectedCollection(collection)}
                     className="w-full"
                   >
                     View all {collectionNFTs.length} NFTs
@@ -235,6 +236,56 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
               </ScrollArea>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Collection View Dialog */}
+      <Dialog open={!!selectedCollection} onOpenChange={() => setSelectedCollection(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>{selectedCollection}</DialogTitle>
+            <DialogDescription>
+              {collections[selectedCollection || '']?.length || 0} NFTs in this collection
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[600px] pr-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {selectedCollection && collections[selectedCollection]?.map((nft) => (
+                <button
+                  key={nft.mint}
+                  onClick={() => {
+                    setSelectedNFT(nft);
+                    setSelectedCollection(null);
+                  }}
+                  className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
+                >
+                  {nft.image && !imageError.has(nft.mint) ? (
+                    <Image
+                      src={nft.image}
+                      alt={nft.name}
+                      fill
+                      className="object-cover"
+                      onError={() => handleImageError(nft.mint)}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-white/50" />
+                    </div>
+                  )}
+                  
+                  {/* Overlay with info */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                    <p className="text-white text-xs font-medium truncate">{nft.name}</p>
+                    <div className="flex items-center justify-between text-white/80 text-xs">
+                      <span>◎ {formatSOL(nft.burnValue)}</span>
+                      <span>{formatUSD(nft.burnValue)}</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>
