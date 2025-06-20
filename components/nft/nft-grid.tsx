@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { NFTAsset } from '@/types/portfolio';
-import Image from 'next/image';
+import { NFTImage } from '@/components/ui/nft-image';
 import { ExternalLink, Image as ImageIcon, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -114,25 +114,18 @@ export function NFTGrid({
 
                 <div className="aspect-square relative mb-3 bg-muted rounded-md overflow-hidden">
                   {nft.image ? (
-                    <Image
+                    <NFTImage
                       src={nft.image}
                       alt={nft.name}
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.classList.remove('hidden');
-                      }}
                     />
-                  ) : null}
-                  <div className={cn(
-                    "absolute inset-0 flex items-center justify-center",
-                    nft.image ? "hidden" : ""
-                  )}>
-                    <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-                  </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1">

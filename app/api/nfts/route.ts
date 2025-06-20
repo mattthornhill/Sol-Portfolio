@@ -113,6 +113,11 @@ export async function POST(request: NextRequest) {
             nft.symbol = nftData.symbol || 'NFT';
             nft.uri = nftData.uri || '';
             
+            // Debug logging for specific collections
+            if (nft.name.toLowerCase().includes('metahelix')) {
+              console.log(`MetaHelix NFT found: ${nft.name}, URI: ${nft.uri}`);
+            }
+            
             // Try to extract collection name from NFT name
             let collectionName = 'Unknown Collection';
             if (nftData.name) {
@@ -162,6 +167,10 @@ export async function POST(request: NextRequest) {
               }
               
               if (metadataUri.startsWith('http')) {
+                let metadataFetched = false;
+                let offchainMetadata: any = null;
+                
+                // Try primary gateway
                 try {
                   const response = await axios.get(metadataUri, { 
                     timeout: 5000,
@@ -169,11 +178,46 @@ export async function POST(request: NextRequest) {
                       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                     }
                   });
-                  const offchainMetadata = response.data;
+                  offchainMetadata = response.data;
+                  metadataFetched = true;
+                } catch (error) {
+                  // If IPFS and primary gateway fails, try other gateways
+                  if (nft.uri.startsWith('ipfs://') && !metadataFetched) {
+                    const ipfsHash = nft.uri.replace('ipfs://', '');
+                    for (let i = 1; i < ipfsGateways.length && !metadataFetched; i++) {
+                      try {
+                        const alternativeUri = ipfsGateways[i] + ipfsHash;
+                        console.log(`Trying alternative IPFS gateway for ${nft.name}: ${alternativeUri}`);
+                        const response = await axios.get(alternativeUri, { 
+                          timeout: 5000,
+                          headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                          }
+                        });
+                        offchainMetadata = response.data;
+                        metadataFetched = true;
+                      } catch (err) {
+                        console.log(`Gateway ${ipfsGateways[i]} failed for ${nft.name}`);
+                      }
+                    }
+                  }
+                  
+                  if (!metadataFetched) {
+                    throw error;
+                  }
+                }
+                
+                if (metadataFetched && offchainMetadata) {
                   
                   // Process image URI
                   if (offchainMetadata.image) {
                     let imageUri = offchainMetadata.image;
+                    
+                    // Debug logging for MetaHelix
+                    if (nft.name.toLowerCase().includes('metahelix')) {
+                      console.log(`MetaHelix image URI: ${imageUri}`);
+                    }
+                    
                     if (imageUri.startsWith('ipfs://')) {
                       // Use the same gateway as metadata for consistency
                       const ipfsHash = imageUri.replace('ipfs://', '');
@@ -185,6 +229,11 @@ export async function POST(request: NextRequest) {
                     }
                     if (imageUri) {
                       nft.image = imageUri;
+                      
+                      // Debug logging for final image URI
+                      if (nft.name.toLowerCase().includes('metahelix')) {
+                        console.log(`MetaHelix final image URI: ${imageUri}`);
+                      }
                     }
                   }
                   
@@ -208,8 +257,9 @@ export async function POST(request: NextRequest) {
                     nft.estimatedValue = floorPrice;
                     nft.hasMarketValue = true;
                   }
+                }
                 } catch (error) {
-                  console.log(`Failed to fetch metadata for ${nft.name}: ${metadataUri}`);
+                  console.log(`Failed to fetch metadata for ${nft.name}: ${metadataUri}`, error);
                 }
               }
             }

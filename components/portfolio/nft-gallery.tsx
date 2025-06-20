@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NFTAsset } from '@/types/portfolio';
 import { Button } from '@/components/ui/button';
 import { Image as ImageIcon, ExternalLink, Coins } from 'lucide-react';
+import { NFTImage } from '@/components/ui/nft-image';
 import Image from 'next/image';
 import { useState } from 'react';
 import {
@@ -40,6 +41,7 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
 
   const handleImageError = (mint: string) => {
     setImageError(prev => new Set(prev).add(mint));
+    console.log(`Image failed to load for NFT: ${mint}`);
   };
 
   if (nfts.length === 0) {
@@ -118,7 +120,7 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
                       className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
                     >
                       {nft.image && !imageError.has(nft.mint) ? (
-                        <Image
+                        <NFTImage
                           src={nft.image}
                           alt={nft.name}
                           fill
@@ -188,7 +190,7 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
               {/* Image */}
               <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                 {selectedNFT.image && !imageError.has(selectedNFT.mint) ? (
-                  <Image
+                  <NFTImage
                     src={selectedNFT.image}
                     alt={selectedNFT.name}
                     fill
@@ -297,7 +299,7 @@ export function NFTGallery({ nfts, solPrice = 145 }: NFTGalleryProps) {
                   className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all"
                 >
                   {nft.image && !imageError.has(nft.mint) ? (
-                    <Image
+                    <NFTImage
                       src={nft.image}
                       alt={nft.name}
                       fill
