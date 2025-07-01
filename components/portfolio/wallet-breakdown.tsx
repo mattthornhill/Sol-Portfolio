@@ -45,7 +45,8 @@ export function WalletBreakdown({ portfolios, wallets }: WalletBreakdownProps) {
         <div className="space-y-3">
           {sortedPortfolios.map((portfolio) => {
             const nickname = getWalletNickname(portfolio.address);
-            const percentage = (portfolio.totalValue / portfolios.reduce((sum, p) => sum + p.totalValue, 0)) * 100;
+            const totalPortfolioValue = portfolios.reduce((sum, p) => sum + p.totalValue, 0);
+            const percentage = totalPortfolioValue > 0 ? (portfolio.totalValue / totalPortfolioValue) * 100 : 0;
             
             return (
               <div

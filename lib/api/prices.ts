@@ -76,46 +76,73 @@ class PriceService {
     }
 
     try {
-      // Jupiter Price API v2
-      const ids = mintsToFetch.join(',');
+      // Use DexScreener for token prices
       console.log('Fetching prices for tokens:', mintsToFetch.length);
       console.log('Token mints:', mintsToFetch.slice(0, 3)); // Show first 3 mints
-      const response = await axios.get(`https://api.jup.ag/price/v2?ids=${ids}`);
-      console.log('Jupiter API response:', JSON.stringify(response.data).slice(0, 200));
       
-      const prices = response.data.data || response.data;
-
-      if (prices) {
-        Object.entries(prices).forEach(([mint, data]: [string, any]) => {
-          const token = tokenMap.get(mint);
-          let price = 0;
+      const prices = {};
+      
+      // Batch fetch prices from DexScreener API
+      // DexScreener allows up to 30 tokens per request
+      const batchSize = 30;
+      for (let i = 0; i < mintsToFetch.length; i += batchSize) {
+        const batch = mintsToFetch.slice(i, i + batchSize);
+        const tokenIds = batch.join(',');
+        
+        try {
+          console.log(`Fetching batch ${Math.floor(i/batchSize) + 1}: ${batch.length} tokens`);
+          const response = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${tokenIds}`, {
+            timeout: 10000
+          });
           
-          if (typeof data === 'object' && data !== null) {
-            price = parseFloat(data.price) || 0;
-          } else if (typeof data === 'number') {
-            price = data;
-          } else if (typeof data === 'string') {
-            price = parseFloat(data) || 0;
+          console.log('DexScreener response:', response.data?.pairs?.length || 0, 'pairs found');
+          
+          if (response.data?.pairs) {
+            response.data.pairs.forEach((pair: any) => {
+              if (pair.baseToken?.address && pair.priceUsd) {
+                const mint = pair.baseToken.address;
+                const price = parseFloat(pair.priceUsd) || 0;
+                if (price > 0) {
+                  prices[mint] = price;
+                  console.log(`Price found for ${pair.baseToken.symbol}: $${price}`);
+                }
+              }
+            });
           }
-          
-          console.log(`Price for ${token?.symbol || mint}: $${price} (type: ${typeof price})`);
-          
-          // Update cache
-          this.priceCache.set(mint, { price, timestamp: now });
-          
-          priceData[mint] = {
-            price,
-            symbol: token?.symbol || 'Unknown',
-            name: token?.name || 'Unknown Token',
-            logoURI: token?.logoURI,
-          };
-        });
+        } catch (batchError) {
+          console.error('Error fetching batch:', batchError.message);
+          // Continue with next batch
+        }
+        
+        // Add delay between batches to avoid rate limits
+        if (i + batchSize < mintsToFetch.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
+
+      // Process found prices
+      Object.entries(prices).forEach(([mint, price]: [string, any]) => {
+        const token = tokenMap.get(mint);
+        const numericPrice = typeof price === 'number' ? price : parseFloat(price) || 0;
+        
+        console.log(`Price for ${token?.symbol || mint}: $${numericPrice}`);
+        
+        // Update cache
+        this.priceCache.set(mint, { price: numericPrice, timestamp: now });
+        
+        priceData[mint] = {
+          price: numericPrice,
+          symbol: token?.symbol || 'Unknown',
+          name: token?.name || 'Unknown Token',
+          logoURI: token?.logoURI,
+        };
+      });
 
       // For tokens without prices, set to 0
       mintsToFetch.forEach(mint => {
         if (!priceData[mint]) {
           const token = tokenMap.get(mint);
+          console.log(`No price found for token: ${token?.symbol || mint.slice(0, 8)}...`);
           priceData[mint] = {
             price: 0,
             symbol: token?.symbol || 'Unknown',
@@ -146,16 +173,32 @@ class PriceService {
 
   async getSOLPrice(): Promise<number> {
     try {
+      console.log('Fetching SOL price from CoinGecko...');
+      const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd', {
+        timeout: 5000
+      });
+      const solPrice = response.data.solana?.usd || 145;
+      console.log('SOL price from CoinGecko:', solPrice);
+      
+      // Cache SOL price for 5 minutes
       const solMint = 'So11111111111111111111111111111111111111112';
-      console.log('Fetching SOL price...');
-      const prices = await this.getTokenPrices([solMint]);
-      const solPrice = prices[solMint]?.price || 0;
-      console.log('SOL price:', solPrice);
+      this.priceCache.set(solMint, { price: solPrice, timestamp: Date.now() });
+      
       return solPrice;
     } catch (error) {
-      console.error('Error fetching SOL price:', error);
+      console.error('Error fetching SOL price from CoinGecko:', error);
+      
+      // Try to get cached SOL price
+      const solMint = 'So11111111111111111111111111111111111111112';
+      const cached = this.priceCache.get(solMint);
+      if (cached && Date.now() - cached.timestamp < this.PRICE_CACHE_TIME * 2) { // Extended cache for SOL
+        console.log('Using cached SOL price:', cached.price);
+        return cached.price;
+      }
+      
       // Return a fallback price if API fails
-      return 30; // Fallback SOL price
+      console.log('Using fallback SOL price: $145');
+      return 145; // Fallback SOL price
     }
   }
 
