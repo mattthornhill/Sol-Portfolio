@@ -80,7 +80,7 @@ class PriceService {
       console.log('Fetching prices for tokens:', mintsToFetch.length);
       console.log('Token mints:', mintsToFetch.slice(0, 3)); // Show first 3 mints
       
-      const prices = {};
+      const prices: Record<string, number> = {};
       
       // Batch fetch prices from DexScreener API
       // DexScreener allows up to 30 tokens per request
@@ -109,8 +109,8 @@ class PriceService {
               }
             });
           }
-        } catch (batchError) {
-          console.error('Error fetching batch:', batchError.message);
+        } catch (batchError: any) {
+          console.error('Error fetching batch:', batchError?.message || batchError);
           // Continue with next batch
         }
         
